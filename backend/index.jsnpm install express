@@ -1,0 +1,11 @@
+const express = require("express");
+const app = express();
+const PORT = 5555;
+
+app.get("/", (req, res) => res.send("✅ Backend OK sur 5555"));
+
+app.listen(PORT, () => {
+  console.log(`🚀 Serveur lancé sur http://localhost:${PORT}`);
+});
+
+
