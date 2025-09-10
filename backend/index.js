@@ -3,6 +3,16 @@
 // --- Charger le .env (à la racine du projet) ---
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
+
+
+// Forcer IPv4 (évite ENETUNREACH en IPv6 sur certains hostings)
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
+
+
 const express = require('express');
 const { Pool } = require('pg');
 const helmet = require('helmet');
