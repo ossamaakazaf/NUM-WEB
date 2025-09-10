@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Backend du projet NUMÉWEB",
   "main": "index.js",
+"engines": { "node": ">=18 <23" }
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
