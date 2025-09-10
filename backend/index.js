@@ -59,6 +59,64 @@ app.post(
   }
 );
 
+// ===== Route POST avec validation (Move 5: insert en DB)
+app.post(
+  '/api/v1/subscribe',
+  celebrate({
+    body: Joi.object({
+      email: Joi.string().email().required(),
+    }),
+  }),
+  async (req, res, next) => {
+    try {
+      const { email } = req.body;
+
+      const insert = await pool.query(
+        'insert into subscribers(email) values($1) returning id, email, created_at',
+        [email]
+      );
+
+      res.status(201).json({ ok: true, subscriber: insert.rows[0] });
+    } catch (err) {
+      // 23505 = violation contrainte unique (email déjà présent)
+      if (err.code === '23505') {
+        return res.status(200).json({ ok: true, message: 'Email déjà inscrit' });
+      }
+      next(err);
+    }
+  }
+);
+
+// Liste paginée des abonnés
+app.get(
+  '/api/v1/subscribers',
+  celebrate({
+    query: Joi.object({
+      limit: Joi.number().integer().min(1).max(100).default(20),
+      offset: Joi.number().integer().min(0).default(0),
+    }),
+  }),
+  async (req, res, next) => {
+    try {
+      const { limit, offset } = req.query;
+      const r = await pool.query(
+        'select id, email, created_at from subscribers order by created_at desc limit $1 offset $2',
+        [limit, offset]
+      );
+      res.json({ ok: true, items: r.rows, limit, offset });
+    } catch (err) { next(err); }
+  }
+);
+
+app.get('/api/v1/subscribers/count', async (_req, res, next) => {
+  try {
+    const r = await pool.query('select count(*)::int as count from subscribers');
+    res.json({ ok: true, count: r.rows[0].count });
+  } catch (err) { next(err); }
+});
+
+
+
 // ===== Connexion PostgreSQL (Supabase) + route de test
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
