@@ -13,15 +13,19 @@ const { celebrate, Joi, errors: celebrateErrors } = require('celebrate');
 const dnsCb = require('dns');            // pour pg.defaults.lookup (fallback IPv4)
 const dns = require('dns').promises;     // pour résoudre l’IPv4 au démarrage
 const { Pool } = require('pg');
+const compression = require('compression');
 
 // --- App ---
 const app = express();
 
+app.set('trust proxy', 1); // Render est derrière un proxy
+
 // ===== Sécurité & middlewares
 app.use(helmet());
-app.use(morgan('dev'));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+app.use(compression());
 
-const allowed = ['http://localhost:3000']; // ajoute ton domaine prod ici (ex. 'https://numeweb.com')
+const allowed = ['http://localhost:3000', 'https://numeweb.com']; // ajoute ton domaine prod ici (ex. 'https://numeweb.com')
 app.use(
   cors({
     origin: (origin, cb) => cb(null, !origin || allowed.includes(origin)),
@@ -41,7 +45,12 @@ app.use(
 
 // ===== Routes simples
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString() });
+  res.json({
+    ok: true,
+    time: new Date().toISOString(),
+    version: process.env.APP_VERSION || 'dev',
+    sha: process.env.GIT_SHA || null
+  });
 });
 
 app.get('/', (_req, res) => {
@@ -154,6 +163,9 @@ async function makePoolWithIPv4(dbUrl) {
     password,
     database,
     ssl: dbUrl.includes('sslmode=require') ? { rejectUnauthorized: false } : undefined,
+    statement_timeout: 10_000,
+    query_timeout: 10_000,
+    idle_in_transaction_session_timeout: 5_000
   });
 }
 
