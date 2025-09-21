@@ -25,7 +25,7 @@ app.use(helmet());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(compression());
 
-const allowed = ['http://localhost:3000', 'https://numeweb.com']; // ajoute ton domaine prod ici (ex. 'https://numeweb.com')
+const allowed = ['http://localhost:3000', 'https://numeweb.com', 'https://www.numeweb.com', 'https://api.numeweb.com']; // ajoute ton domaine prod ici (ex. 'https://numeweb.com')
 app.use(
   cors({
     origin: (origin, cb) => cb(null, !origin || allowed.includes(origin)),
