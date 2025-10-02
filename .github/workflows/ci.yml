@@ -16,25 +16,32 @@ jobs:
         run: echo "CI up and running ✅"
 
   backend:
-    # Le job backend n'échouera PAS la CI (pour l’instant)
+    # Ce job n'échouera pas le workflow (pour l’instant)
     continue-on-error: true
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('backend/package.json') != '' }}
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Detect backend presence
+        id: check
+        run: |
+          if [ -f "backend/package.json" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Show tree (debug)
+        if: steps.check.outputs.exists == 'true'
         run: |
           pwd
           ls -la
           echo "--- backend ---"
-          ls -la backend || true
+          ls -la backend
 
       - name: Setup Node.js
+        if: steps.check.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -42,6 +49,8 @@ jobs:
           cache-dependency-path: backend/package-lock.json
 
       - name: Install deps
+        if: steps.check.outputs.exists == 'true'
+        working-directory: backend
         run: |
           if [ -f package-lock.json ]; then
             npm ci --no-audit --no-fund
@@ -50,7 +59,11 @@ jobs:
           fi
 
       - name: Lint (non-blocking)
+        if: steps.check.outputs.exists == 'true'
+        working-directory: backend
         run: npm run lint || echo "no lint"
 
       - name: Tests (non-blocking)
+        if: steps.check.outputs.exists == 'true'
+        working-directory: backend
         run: npm test || echo "no tests"
