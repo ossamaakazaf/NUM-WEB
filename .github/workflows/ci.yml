@@ -1,69 +1,27 @@
 name: CI
-
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  push: { branches: [ "main" ] }
+  pull_request: { branches: [ "main" ] }
 
 jobs:
-  sanity:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Sanity OK
-        run: echo "CI up and running ✅"
-
   backend:
-    # Ce job n'échouera pas le workflow (pour l’instant)
-    continue-on-error: true
     runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend } }
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Detect backend presence
-        id: check
-        run: |
-          if [ -f "backend/package.json" ]; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Show tree (debug)
-        if: steps.check.outputs.exists == 'true'
-        run: |
-          pwd
-          ls -la
-          echo "--- backend ---"
-          ls -la backend
-
-      - name: Setup Node.js
-        if: steps.check.outputs.exists == 'true'
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: backend/package-lock.json
-
-      - name: Install deps
-        if: steps.check.outputs.exists == 'true'
-        working-directory: backend
+      - name: Install
         run: |
-          if [ -f package-lock.json ]; then
-            npm ci --no-audit --no-fund
-          else
-            npm install --no-audit --no-fund
-          fi
-
-      - name: Lint (non-blocking)
-        if: steps.check.outputs.exists == 'true'
-        working-directory: backend
-        run: npm run lint || echo "no lint"
-
-      - name: Tests (non-blocking)
-        if: steps.check.outputs.exists == 'true'
-        working-directory: backend
-        run: npm test || echo "no tests"
+          if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm i --no-audit --no-fund; fi
+      - name: Lint
+        run: npm run lint
+      - name: Format (Prettier check)
+        run: npm run fmt
+      - name: Unit tests
+        run: npm test
+      - name: Coverage (lcov)
+        run: npm run coverage
