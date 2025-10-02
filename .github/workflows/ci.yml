@@ -9,14 +9,20 @@ on:
 jobs:
   backend-ci:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Show repository tree (debug)
+        run: |
+          pwd
+          ls -la
+          echo "--- backend dir ---"
+          ls -la backend || true
+
+      # On ne fait la CI backend que si backend/package.json existe
       - name: Setup Node.js
+        if: ${{ hashFiles('backend/package.json') != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -24,17 +30,25 @@ jobs:
           cache-dependency-path: backend/package-lock.json
 
       - name: Install deps (prefer npm ci)
+        if: ${{ hashFiles('backend/package.json') != '' }}
+        working-directory: backend
         run: |
+          node -v
+          npm -v
           if [ -f package-lock.json ]; then
-            npm ci
+            npm ci --no-audit --no-fund
           else
-            npm install
+            npm install --no-audit --no-fund
           fi
 
       - name: Run lint if present (non-blocking)
+        if: ${{ hashFiles('backend/package.json') != '' }}
+        working-directory: backend
         run: npm run lint || echo "no lint"
         continue-on-error: true
 
       - name: Run tests if present (non-blocking)
+        if: ${{ hashFiles('backend/package.json') != '' }}
+        working-directory: backend
         run: npm test || echo "no tests"
         continue-on-error: true
