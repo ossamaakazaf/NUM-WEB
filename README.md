@@ -1,1 +1,1 @@
-![CI](https://github.com/ossamaakazaf/NUM-WEB/actions/workflows/ci.yml/badge.svg?branch=main)
+![CI](https://github.com/ossamaakazaf/NUM-WEB/actions/workflows/ci.yml/badge.svg?branch=main&v=2)
