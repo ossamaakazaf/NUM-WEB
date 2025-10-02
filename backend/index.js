@@ -1,7 +1,9 @@
 // backend/index.js
 
 // --- ENV (.env à la racine) ---
-require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+require('dotenv').config({
+  path: require('path').join(__dirname, '..', '.env'),
+});
 
 // --- Imports ---
 const express = require('express');
@@ -10,8 +12,8 @@ const morgan = require('morgan');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { celebrate, Joi, errors: celebrateErrors } = require('celebrate');
-const dnsCb = require('dns');            // pour pg.defaults.lookup (fallback IPv4)
-const dns = require('dns').promises;     // pour résoudre l’IPv4 au démarrage
+const dnsCb = require('dns'); // pour pg.defaults.lookup (fallback IPv4)
+const dns = require('dns').promises; // pour résoudre l’IPv4 au démarrage
 const { Pool } = require('pg');
 const compression = require('compression');
 
@@ -25,12 +27,17 @@ app.use(helmet());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(compression());
 
-const allowed = ['http://localhost:3000', 'https://numeweb.com', 'https://www.numeweb.com', 'https://api.numeweb.com']; // ajoute ton domaine prod ici (ex. 'https://numeweb.com')
+const allowed = [
+  'http://localhost:3000',
+  'https://numeweb.com',
+  'https://www.numeweb.com',
+  'https://api.numeweb.com',
+]; // ajoute ton domaine prod ici (ex. 'https://numeweb.com')
 app.use(
   cors({
     origin: (origin, cb) => cb(null, !origin || allowed.includes(origin)),
     credentials: true,
-  })
+  }),
 );
 
 app.use(express.json({ limit: '1mb' }));
@@ -40,7 +47,7 @@ app.use(
     max: 120,
     standardHeaders: true,
     legacyHeaders: false,
-  })
+  }),
 );
 
 // ===== Routes simples
@@ -49,7 +56,7 @@ app.get('/health', (_req, res) => {
     ok: true,
     time: new Date().toISOString(),
     version: process.env.APP_VERSION || 'dev',
-    sha: process.env.GIT_SHA || null
+    sha: process.env.GIT_SHA || null,
   });
 });
 
@@ -73,17 +80,19 @@ app.post(
       const { email } = req.body;
       const insert = await pool.query(
         'insert into subscribers(email) values($1) returning id, email, created_at',
-        [email]
+        [email],
       );
       res.status(201).json({ ok: true, subscriber: insert.rows[0] });
     } catch (err) {
       // 23505 = unique violation (email déjà présent)
       if (err.code === '23505') {
-        return res.status(200).json({ ok: true, message: 'Email déjà inscrit' });
+        return res
+          .status(200)
+          .json({ ok: true, message: 'Email déjà inscrit' });
       }
       next(err);
     }
-  }
+  },
 );
 
 // ===== Listing paginé
@@ -100,21 +109,25 @@ app.get(
       const { limit, offset } = req.query;
       const r = await pool.query(
         'select id, email, created_at from subscribers order by created_at desc limit $1 offset $2',
-        [limit, offset]
+        [limit, offset],
       );
       res.json({ ok: true, items: r.rows, limit, offset });
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
 
 // ===== Compte total
 app.get('/api/v1/subscribers/count', async (_req, res, next) => {
   try {
-    const r = await pool.query('select count(*)::int as count from subscribers');
-  res.json({ ok: true, count: r.rows[0].count });
-  } catch (err) { next(err); }
+    const r = await pool.query(
+      'select count(*)::int as count from subscribers',
+    );
+    res.json({ ok: true, count: r.rows[0].count });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // ===== Ping DB
@@ -137,7 +150,9 @@ app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 // ===== Error handler global
 app.use((err, _req, res, _next) => {
   console.error('[error]', err);
-  res.status(err.status || 500).json({ ok: false, error: err.message || 'Internal Server Error' });
+  res
+    .status(err.status || 500)
+    .json({ ok: false, error: err.message || 'Internal Server Error' });
 });
 
 // ===== Connexion PostgreSQL (Supabase) — FORCER IPv4
@@ -162,10 +177,12 @@ async function makePoolWithIPv4(dbUrl) {
     user,
     password,
     database,
-    ssl: dbUrl.includes('sslmode=require') ? { rejectUnauthorized: false } : undefined,
+    ssl: dbUrl.includes('sslmode=require')
+      ? { rejectUnauthorized: false }
+      : undefined,
     statement_timeout: 10_000,
     query_timeout: 10_000,
-    idle_in_transaction_session_timeout: 5_000
+    idle_in_transaction_session_timeout: 5_000,
   });
 }
 
@@ -204,4 +221,3 @@ const shutdown = (signal) => {
 };
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
-
