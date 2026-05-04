@@ -1,8 +1,10 @@
 import OpenAI from "openai";
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+function getOpenAIClient() {
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+}
 
 const TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || "gpt-4.1-mini";
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1-mini";
@@ -201,7 +203,7 @@ export async function POST(req) {
         { status: 500 }
       );
     }
-
+    const client = getOpenAIClient();
     const body = await req.json();
     const promptUtilisateur = body?.prompt?.trim();
 
